@@ -1,13 +1,25 @@
 import React from "react";
-import "./App.css";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import Chat from "./components/Chat";
-import Login from "./components/Login";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { CssBaseline } from "@mui/material";
+
+import "@fontsource/roboto/300.css";
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
+
+import { AuthProvider, useAuth } from "./contexts/AuthProvider";
+
+import Chat from "./pages/Chat";
+import Login from "./pages/Login";
+import Index from "./pages/Index";
+
+import { WSProvider } from "./contexts/WSProvider";
 
 const router = createBrowserRouter([
     {
         path: "/",
-        element: <div>Hello world!</div>,
+        element: <Index />,
     },
     {
         path: "/login",
@@ -15,13 +27,36 @@ const router = createBrowserRouter([
     },
     {
         path: "/chat",
-        element: <Chat />,
-    }
+        element: (
+            <ProtectedRoute>
+                <Chat />
+            </ProtectedRoute>
+        ),
+    },
 ]);
+
+function Layout() {
+    const { isLoading } = useAuth();
+
+    if (isLoading) {
+        return <div>Loading...</div>;
+    }
+
+    return (
+        <div>
+            <WSProvider>
+                <RouterProvider router={router} />
+            </WSProvider>
+        </div>
+    );
+}
 
 function App() {
     return (
-        <RouterProvider router={router} />
+        <AuthProvider>
+            <CssBaseline />
+            <Layout />
+        </AuthProvider>
     );
 }
 
