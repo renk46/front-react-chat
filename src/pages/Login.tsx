@@ -1,18 +1,22 @@
 import React, { useState } from "react";
 import FormControl from "@mui/material/FormControl";
+import { useNavigate } from "react-router-dom";
 import { Container, Button, Stack, TextField } from "@mui/material";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useAuth } from "../contexts/AuthProvider";
 
+
 function Login() {
-    const { login } = useAuth()
+    const { login } = useAuth();
     const [name, setName] = useState<string>("");
     const [pass, setPass] = useState<string>("");
-    const [ token, setToken ] = useLocalStorage("token", null)
+    const [token, setToken] = useLocalStorage("token", null);
+    const navigate = useNavigate();
 
     const handleClick = async () => {
-        const credentials = login(name, pass);
-        setToken(credentials)
+        const credentials = await login(name, pass);
+        setToken(credentials);
+        navigate("/chat/test");
     };
 
     return (

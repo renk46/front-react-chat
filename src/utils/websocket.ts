@@ -1,7 +1,7 @@
 type MessageType = {
-    type: string,
-    message: object
-}
+    type: string;
+    message: object | string;
+};
 
 const CLOSE = 0;
 const OPEN = 1;
@@ -17,21 +17,23 @@ interface WebSocketClient {
     subscribers: Subscriber[];
     status: number;
     ws: WebSocket;
+    isReconnecting: boolean;
 }
 
 class WebSocketClient {
-    constructor(host: string) {
+    constructor(host: string, isReconnecting = true) {
         this.subscribers = [];
         this.status = CLOSE;
         this.host = host;
+        this.isReconnecting = isReconnecting;
     }
 
-    onWSOpen () {}
+    onWSOpen() {}
 
     async connect() {
         const onOpen = () => {
             this.status = OPEN;
-            this.onWSOpen()
+            this.onWSOpen();
             console.log("WS open");
         };
 
@@ -46,15 +48,16 @@ class WebSocketClient {
         const onClose = () => {
             console.log("WS close");
             this.status = CLOSE;
-            setTimeout(() => {
-                this.connect().then((ws: WebSocket) => {
-                    ws.onopen = onOpen;
-                    ws.onmessage = onMessage;
-                    ws.onclose = onClose;
-                    ws.onerror = onError;
-                    this.ws = ws;
-                });
-            }, 5000);
+            if (this.isReconnecting)
+                setTimeout(() => {
+                    this.connect().then((ws: WebSocket) => {
+                        ws.onopen = onOpen;
+                        ws.onmessage = onMessage;
+                        ws.onclose = onClose;
+                        ws.onerror = onError;
+                        this.ws = ws;
+                    });
+                }, 5000);
         };
 
         const ws = new WebSocket(this.host);
@@ -67,6 +70,7 @@ class WebSocketClient {
     }
 
     close() {
+        this.isReconnecting = false;
         if (this.ws) this.ws.close();
     }
 

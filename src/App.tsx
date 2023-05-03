@@ -26,7 +26,7 @@ const router = createBrowserRouter([
         element: <Login />,
     },
     {
-        path: "/chat",
+        path: "/chat/:room",
         element: (
             <ProtectedRoute>
                 <Chat />

@@ -8,7 +8,7 @@ export const api = axios.create({
 });
 
 export const setAccessToken = (token: string) => {
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    if (token) api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 };
 
 function getTimestampInSeconds() {
@@ -34,6 +34,7 @@ api.interceptors.request.use(
                 })
                 window.localStorage.setItem("token", JSON.stringify({...JSON.parse(token), access: res.data.access}));
                 config.headers.Authorization = `Bearer ${res.data.access}`;
+                api.defaults.headers.common["Authorization"] = `Bearer ${res.data.access}`
             }
         }
         return config;

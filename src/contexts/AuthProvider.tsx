@@ -55,14 +55,20 @@ export const AuthProvider = ({ children }: Props) => {
 
     useEffect(() => {
         const _getUserinfo = async () => {
-            const data = await getUserInfo();
-            setUser(data);
-            setIsLoading(false);
+            try {
+                const data = await getUserInfo();
+                setUser(data);
+                setIsLoading(false);
+            } catch (e) {
+                setIsLoading(false);
+            }
         };
 
         if (token) {
             setAccessToken(token.access);
             _getUserinfo();
+        } else {
+            setIsLoading(false);
         }
     }, []);
 
