@@ -1,6 +1,6 @@
 type MessageType = {
-    type: string;
-    message: object | string;
+    t: string;
+    p: object | string;
 };
 
 const CLOSE = 0;
@@ -18,14 +18,16 @@ interface WebSocketClient {
     status: number;
     ws: WebSocket;
     isReconnecting: boolean;
+    isDebug: boolean;
 }
 
 class WebSocketClient {
-    constructor(host: string, isReconnecting = true) {
+    constructor(host: string, isReconnecting = true, isDebug = false) {
         this.subscribers = [];
         this.status = CLOSE;
         this.host = host;
         this.isReconnecting = isReconnecting;
+        this.isDebug = isDebug
     }
 
     onWSOpen() {}
@@ -34,7 +36,7 @@ class WebSocketClient {
         const onOpen = () => {
             this.status = OPEN;
             this.onWSOpen();
-            console.log("WS open");
+            if (this.isDebug) console.log("WebSocketEvent Open");
         };
 
         const onMessage = (e: MessageEvent<string>) => {
@@ -42,12 +44,12 @@ class WebSocketClient {
         };
 
         const onError = (e: Event) => {
-            console.error("WS error: " + e);
+            if (this.isDebug) console.error(`WebSocketEvent Error ${e}`);
         };
 
         const onClose = () => {
-            console.log("WS close");
             this.status = CLOSE;
+            if (this.isDebug) console.log("WebSocketEvent Close");
             if (this.isReconnecting)
                 setTimeout(() => {
                     this.connect().then((ws: WebSocket) => {
@@ -77,8 +79,8 @@ class WebSocketClient {
     processMessage(data: string) {
         const dt = JSON.parse(data);
         this.subscribers.map((e: Subscriber) => {
-            if (dt.type === e.type) {
-                e.callback(dt);
+            if (dt.t === e.type) {
+                e.callback(dt.p);
             }
             return e;
         });

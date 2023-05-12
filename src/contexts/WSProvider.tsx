@@ -51,28 +51,30 @@ export const WSProvider = ({ children }: Props) => {
         ws.subscribe(
             "AUTH",
             (data: any) => {
-                if (data.message === "WHOAREYOU") {
+                if (data === "WHOAREYOU" && token?.access) {
                     ws.send({
-                        type: "AUTH",
-                        message: token?.access,
+                        t: "AUTH",
+                        p: token?.access,
                     });
                 }
-                else if (data.message === "SUCCESS") {
+                else if (data === "SUCCESS") {
                     ws.send({
-                        type: "INFO",
-                        message: "WHOAIM",
+                        t: "INFO",
+                        p: {
+                            "request": "WHOAIM"
+                        },
                     });
                     setIsReady(true)
                 }
-                else if (data.message === "TOKENEXPIRED") {
+                else if (data === "TOKENEXPIRED") {
                     refreshToken();
                 }
             },
-            "sAuth"
+            "AUTHCATCHER"
         );
 
         return () => {
-            ws.unsubscribe("sAuth");
+            ws.unsubscribe("AUTHCATCHER");
         };
     }, [ws, token, refreshToken]);
 

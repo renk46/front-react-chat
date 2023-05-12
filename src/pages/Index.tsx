@@ -6,7 +6,7 @@ function Index() {
     return (
         <Container maxWidth="sm">
             <Typography variant="h4" component="h2">
-                This is <Link to={'chat'}>Chat</Link>
+                This is <Link to={'chat/test/'}>Chat</Link>
             </Typography>
         </Container>
     );

@@ -20,6 +20,8 @@ type AuthContextType = {
     user: UserType | null;
     login: (user: string, pass: string) => Promise<any>;
     isLoading: boolean;
+    token: string | null,
+    setToken: (token: string) => void;
 };
 
 type Props = {
@@ -33,12 +35,14 @@ const AuthContext = createContext<AuthContextType>({
             reject();
         }),
     isLoading: true,
+    token: null,
+    setToken: (token: string) => {}
 });
 
 export const AuthProvider = ({ children }: Props) => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [user, setUser] = useState<UserType | null>(null);
-    const [token] = useLocalStorage("token", null);
+    const [token, setToken] = useLocalStorage("token", null);
 
     const login = useCallback(async (user: string, pass: string) => {
         const res = await api.post("api/token/", {
@@ -70,15 +74,17 @@ export const AuthProvider = ({ children }: Props) => {
         } else {
             setIsLoading(false);
         }
-    }, []);
+    }, [getUserInfo, token]);
 
     const value = useMemo(
         () => ({
             user,
             login,
             isLoading,
+            token,
+            setToken,
         }),
-        [user, login, isLoading]
+        [user, login, isLoading, token, setToken]
     );
 
     return (

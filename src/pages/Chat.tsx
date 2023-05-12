@@ -1,8 +1,9 @@
-import { Box, Container, TextField, Stack, Card, CardContent, Typography } from "@mui/material";
+import { Box, Container, Stack, Card, CardContent, Typography, Paper, InputBase, IconButton, Divider } from "@mui/material";
 import { grey } from "@mui/material/colors";
 import React, { useEffect, useRef, useState } from "react";
 import { useWS } from "../contexts/WSProvider";
 import { useParams } from "react-router-dom";
+import EmojiPicker from "emoji-picker-react";
 
 type Props = {
     data: any
@@ -30,17 +31,9 @@ function Chat() {
     useEffect(() => {
         if (ws) {
             ws.subscribe(
-                "broadcast",
-                (data: string) => {
-                    console.log(data);
-                },
-                "subsChatBroadcast"
-            );
-
-            ws.subscribe(
                 "MESSAGE",
                 (data: any) => {
-                    messages.push(data.message)
+                    messages.push(data)
                     setMessages([...messages])
                 },
                 "MESSAGESCATCHER"
@@ -49,7 +42,6 @@ function Chat() {
 
         return () => {
             if (ws) {
-                ws.unsubscribe("subsChatBroadcast");
                 ws.unsubscribe("MESSAGESCATCHER");
             }
         };
@@ -57,23 +49,30 @@ function Chat() {
 
     useEffect(() => {
         if (isReady) ws?.send({
-            type: "INFO",
-            message: `JOIN ROOM ${room}`
+            t: "INFO",
+            p: { request: "JOIN ROOM", data: room }
         })
     }, [isReady, ws, room])
 
     const [text, setText] = useState<string>("")
+    const [emojiShow, setEmojiShow] = useState<boolean>(false)
 
     const keyPress = (e: any) => {
-        if (e.keyCode === 13 && !e.ctrlKey) {
+        if (e.keyCode === 13 && !e.ctrlKey && text) {
             e.preventDefault();
             ws?.send({
-                type: "MESSAGE",
-                message: `${room} ${text}`
+                t: "INFO",
+                p: {
+                    request: "MESSAGE",
+                    room: room,
+                    text: text
+                }
             })
             setText("")
         } else if (e.keyCode === 13 && e.ctrlKey) {
             setText(text + '\n')
+        } else if (e.keyCode === 13 && !e.ctrlKey) {
+            e.preventDefault();
         }
     };
 
@@ -88,6 +87,14 @@ function Chat() {
     useEffect(() => {
         scrollToBottom()
     }, [messages])
+
+    const handleAddEmoji = (e: any) => {
+        setText(`${text} ${e.emoji}`)
+    }
+
+    const handleToggleEmoji = (status: boolean) => {
+        setEmojiShow(status)
+    }
 
     return (
         <Container maxWidth="sm">
@@ -112,16 +119,31 @@ function Chat() {
                     <div ref={messagesEndRef} />
                 </Stack>
             </Box>
-            <TextField
-                sx={{
-                    width: 350,
-                }}
-                multiline
-                maxRows={4}
-                onKeyDown={keyPress}
-                value={text}
-                onChange={handleChange}
-            />
+            {emojiShow ? <Stack sx={{
+                position: "absolute",
+                top: 251
+            }} onMouseEnter={() => { handleToggleEmoji(true) }} onMouseLeave={() => { handleToggleEmoji(false) }}>
+                <EmojiPicker onEmojiClick={handleAddEmoji} />
+            </Stack> : false}
+            <Paper
+                component="form"
+                sx={{ p: '2px 4px', display: 'flex', alignItems: 'center', width: 350 }}
+                >
+                <InputBase
+                    sx={{ ml: 1, flex: 1 }}
+                    multiline
+                    maxRows={4}
+                    onKeyDown={keyPress}
+                    value={text}
+                    onChange={handleChange}
+                />
+                <Divider sx={{ height: 28, m: 0.5 }} orientation="vertical" />
+                <IconButton color="primary" sx={{ p: '10px' }} aria-label="directions">
+                    <Stack onMouseEnter={() => { handleToggleEmoji(true) }} onMouseLeave={() => { handleToggleEmoji(false) }}>
+                        😀
+                    </Stack>
+                </IconButton>
+            </Paper>
         </Container>
     );
 }
