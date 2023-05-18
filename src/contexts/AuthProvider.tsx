@@ -20,7 +20,7 @@ type AuthContextType = {
     user: UserType | null;
     login: (user: string, pass: string) => Promise<any>;
     isLoading: boolean;
-    token: string | null,
+    token: any | null,
     setToken: (token: string) => void;
 };
 
@@ -53,9 +53,18 @@ export const AuthProvider = ({ children }: Props) => {
     }, []);
 
     const getUserInfo = useCallback(async (token: string) => {
-        const res = await api.post("api/token/verify/", {
-            token: token
-        });
+        let res = null
+        try {
+            res = await api.post("api/token/verify/", {
+                token: token
+            });
+        } catch {
+            const token = window.localStorage.getItem("token")
+            const parsedToken = (token) ? JSON.parse(token) : null
+            res = await api.post("api/token/verify/", {
+                token: parsedToken?.access
+            });
+        }
         return res.data;
     }, []);
 
