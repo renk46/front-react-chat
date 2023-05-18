@@ -29,29 +29,29 @@ function Chat() {
     let { room } = useParams();
 
     useEffect(() => {
-        if (ws) {
-            ws.subscribe(
-                "MESSAGE",
-                (data: any) => {
-                    messages.push(data)
-                    setMessages([...messages])
-                },
-                "MESSAGESCATCHER"
-            )
-        }
+        const killNewMessageListener = ws?.subscribe(
+            "NEW MESSAGE",
+            (data: any) => {
+                messages.push(data)
+                setMessages([...messages])
+            },
+        )
+
+        const killMessagesListRoomListener = ws?.subscribe(
+            "MESSAGES LIST ROOM",
+            (data: any) => {
+                setMessages([...data.messages])
+            },
+        )
 
         return () => {
-            if (ws) {
-                ws.unsubscribe("MESSAGESCATCHER");
-            }
+            if (killNewMessageListener) killNewMessageListener()
+            if (killMessagesListRoomListener) killMessagesListRoomListener()
         };
     }, [ws, messages]);
 
     useEffect(() => {
-        if (isReady) ws?.send({
-            t: "INFO",
-            p: { request: "JOIN ROOM", data: room }
-        })
+        if (isReady) ws?.sendData({ request: "JOIN ROOM", data: room })
     }, [isReady, ws, room])
 
     const [text, setText] = useState<string>("")
@@ -60,10 +60,9 @@ function Chat() {
     const keyPress = (e: any) => {
         if (e.keyCode === 13 && !e.ctrlKey && text) {
             e.preventDefault();
-            ws?.send({
-                t: "INFO",
-                p: {
-                    request: "MESSAGE",
+            ws?.sendData({
+                request: "NEW MESSAGE",
+                data: {
                     room: room,
                     text: text
                 }
@@ -86,7 +85,7 @@ function Chat() {
 
     useEffect(() => {
         scrollToBottom()
-    }, [messages])
+    }, [messages.length])
 
     const handleAddEmoji = (e: any) => {
         setText(`${text} ${e.emoji}`)

@@ -52,15 +52,17 @@ export const AuthProvider = ({ children }: Props) => {
         return res.data;
     }, []);
 
-    const getUserInfo = useCallback(async () => {
-        const res = await api.get("api/chat/users/get_userinfo/");
+    const getUserInfo = useCallback(async (token: string) => {
+        const res = await api.post("api/token/verify/", {
+            token: token
+        });
         return res.data;
     }, []);
 
     useEffect(() => {
-        const _getUserinfo = async () => {
+        const _getUserinfo = async (token: string) => {
             try {
-                const data = await getUserInfo();
+                const data = await getUserInfo(token);
                 setUser(data);
                 setIsLoading(false);
             } catch (e) {
@@ -70,7 +72,7 @@ export const AuthProvider = ({ children }: Props) => {
 
         if (token) {
             setAccessToken(token.access);
-            _getUserinfo();
+            _getUserinfo(token.access);
         } else {
             setIsLoading(false);
         }

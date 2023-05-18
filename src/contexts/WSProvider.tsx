@@ -48,34 +48,20 @@ export const WSProvider = ({ children }: Props) => {
     }, []);
 
     useEffect(() => {
-        ws.subscribe(
-            "AUTH",
-            (data: any) => {
-                if (data === "WHOAREYOU" && token?.access) {
-                    ws.send({
-                        t: "AUTH",
-                        p: token?.access,
-                    });
-                }
-                else if (data === "SUCCESS") {
-                    ws.send({
-                        t: "INFO",
-                        p: {
-                            "request": "WHOAIM"
-                        },
-                    });
-                    setIsReady(true)
-                }
-                else if (data === "TOKENEXPIRED") {
-                    refreshToken();
-                }
-            },
-            "AUTHCATCHER"
-        );
+        ws.onAuthSuccess = () => {
+            ws.sendData({
+                "request": "WHOAIM"
+            });
+            setIsReady(true)
+        }
 
-        return () => {
-            ws.unsubscribe("AUTHCATCHER");
-        };
+        ws.onAuthFailed = () => {
+            if (token?.access) ws.sendAuth(token?.access)
+        }
+
+        ws.onTokenExpired = () => {
+            refreshToken();
+        }
     }, [ws, token, refreshToken]);
 
     useEffect(() => {
