@@ -1,7 +1,4 @@
-type MessageType = {
-	type: string
-	payload: object | string
-}
+type MessageType = Array<string | object>
 
 export enum Status {
 	CLOSE,
@@ -26,6 +23,8 @@ interface WebSocketClient {
 	status: number
 	ws: WebSocket
 	isReconnecting: boolean
+	isFastReconnect: boolean
+	timeReconnectingMs: number
 	isDebug: boolean
 }
 
@@ -36,16 +35,22 @@ class WebSocketClient {
 		this.status = Status.CLOSE
 		this.host = host
 		this.isReconnecting = isReconnecting
+		this.isFastReconnect = false
+		this.timeReconnectingMs = 5000
 		this.isDebug = isDebug
 	}
 
+	/* eslint-disable class-methods-use-this */
 	onStatusChanged(status: number) {}
 
+	/* eslint-disable class-methods-use-this */
 	onAuthSuccess() {}
 
-    onAuthFailed() {}
+	/* eslint-disable class-methods-use-this */
+	onAuthFailed() {}
 
-    onTokenExpired() {}
+	/* eslint-disable class-methods-use-this */
+	onTokenExpired() {}
 
 	isOpen() {
 		return this.status === Status.OPEN
@@ -60,7 +65,7 @@ class WebSocketClient {
 		this.onStatusChanged(status)
 	}
 
-	async connect() {
+	connect() {
 		const onOpen = () => {
 			this.changeStatus(Status.OPEN)
 			if (this.isDebug) console.log('WebSocketEvent Open')
@@ -77,11 +82,14 @@ class WebSocketClient {
 		const onClose = () => {
 			this.changeStatus(Status.CLOSE)
 			if (this.isDebug) console.log('WebSocketEvent Close')
-			if (this.isReconnecting)
+			if (this.isFastReconnect) {
+				this.isFastReconnect = false
+				this.connect()
+			} else if (this.isReconnecting)
 				setTimeout(() => {
 					if (this.isDebug) console.log('WebSocket reConnect')
 					this.connect()
-				}, 5000)
+				}, this.timeReconnectingMs)
 		}
 
 		const ws = new WebSocket(this.host)
@@ -93,32 +101,40 @@ class WebSocketClient {
 		return ws
 	}
 
-	forceClose() {
-		this.isReconnecting = false
-		if (this.ws && !this.isClose()) this.ws.close()
+	close() {
+		this.ws.close()
+	}
+
+	reconnect() {
+		this.isFastReconnect = true
+		this.close()
 	}
 
 	handleMessage(data: string) {
-		const message = JSON.parse(data)
-		if (message.type === String(MessageTypes.AUTH)) {
-            if (message.payload === 'SUCCESS') this.onAuthSuccess()
-            else if (message.payload === 'WHOAREYOU') this.onAuthFailed()
-            else if (message.payload === 'TOKENEXPIRED') this.onTokenExpired()
-        }
-		else if (message.type === String(MessageTypes.DATA)) this.handleMessageData(message.payload)
+		const message: Array<string | object> = JSON.parse(data)
+		if (message.length < 2) throw new Error("Broke type message")
+		if (message[0] === String(MessageTypes.AUTH)) {
+			if (message[1] === 'SUCCESS') this.onAuthSuccess()
+			else if (message[1] === 'WHOAREYOU') this.onAuthFailed()
+			else if (message[1] === 'TOKENEXPIRED') this.onTokenExpired()
+		} else if (message[0] === String(MessageTypes.DATA)) this.handleMessageData(message[1])
 	}
 
 	handleMessageData(payload: any) {
-		this.subscribers.map((e: Subscriber) =>
-			payload.response === e.response ? e.callback(payload.data) : null
-		)
+		if (payload.result === 'success') {
+			this.subscribers.map((e: Subscriber) =>
+				payload.response === e.response ? e.callback(payload.data) : null
+			)
+		} else if (payload.result === 'failed') {
+			console.error('HandleMessageError', payload.data)
+		}
 	}
 
-	subscribe(response: string, callback: CallableFunction, uuid: string = "") {
+	subscribe(response: string, callback: CallableFunction, uuid: string = '') {
 		const sub = {
-			uuid: uuid,
-			response: response,
-			callback: callback,
+			uuid,
+			response,
+			callback,
 		}
 		this.subscribers.push(sub)
 		return () => {
@@ -136,17 +152,18 @@ class WebSocketClient {
 		else this.pendingMessages.push(message)
 	}
 
-    sendAuth(payload: object | string) {
-        return this.send({ type: String(MessageTypes.AUTH), payload: payload })
-    }
+	sendAuth(payload: object | string) {
+		return this.send([String(MessageTypes.AUTH), payload])
+	}
 
 	sendData(payload: object | string) {
-		return this.send({ type: String(MessageTypes.DATA), payload: payload })
+		return this.send([String(MessageTypes.DATA), payload])
 	}
 
 	whoiam() {
 		return this.sendData({
-			request: 'WHOAIM',
+			request: 'WHOIAM',
+			data: {},
 		})
 	}
 }

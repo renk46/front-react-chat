@@ -49,9 +49,7 @@ export const WSProvider = ({ children }: Props) => {
 
     useEffect(() => {
         ws.onAuthSuccess = () => {
-            ws.sendData({
-                "request": "WHOAIM"
-            });
+            ws.whoiam()
             setIsReady(true)
         }
 
